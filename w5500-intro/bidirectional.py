@@ -2,8 +2,10 @@ from usocket import socket
 from machine import Pin,SPI
 import network
 import time
+import utime
 
 is_server=False
+led = Pin(25, Pin.OUT)
 
 #W5x00 chip init
 def w5x00_init():
@@ -12,10 +14,8 @@ def w5x00_init():
     nic.active(True)
 
     if is_server: 
-        #Server
         nic.ifconfig(('192.168.1.20','255.255.255.0','192.168.1.1','8.8.8.8'))
     else:
-        #Client
         nic.ifconfig(('192.168.1.21','255.255.255.0','192.168.1.1','8.8.8.8'))
     
     print('IP address :', nic.ifconfig())
@@ -29,11 +29,18 @@ def server_loop():
     s.listen(5)
     
     print("TEST server")
+    led.value(1)
     conn, addr = s.accept()
     print("Connect to:", conn, "address:", addr) 
     print("Loopback server Open!")
     while True:
         data = conn.recv(2048)
+        # Server blinks three times fast on each data reception
+        for x in range(3):
+            led.value(1)
+            utime.sleep_ms(50)
+            led.value(0)
+            utime.sleep_ms(50)
         print(data.decode('utf-8'))
         if data != 'NULL':
             conn.send(data)
@@ -42,29 +49,46 @@ def client_loop():
     print("Attempt Loopback client Connect!")
 
     s = socket()
-    s.connect(s.getaddrinfo('192.168.1.20', 5000)) #Destination IP Address
+    s.connect(('192.168.1.20', 5000)) #Destination IP Address
     
-    s.send(1)
+    s.send('1')
 
     print("Loopback client Connect!")
     while True:
-        led.value(1)
-        time.sleep(1)
-        led.value(0)
-        time.sleep(1)
         data = s.recv(2048)
+        # Client blinks on off slow on data reception
         print(data.decode('utf-8'))
         if data != 'NULL' :
-            s.send(data+1)
+            led.value(1)
+            utime.sleep_ms(500)
+            led.value(0)
+            utime.sleep_ms(500)
+            data_int = int(data) + 1
+            s.send(str(data_int))
         
 def main():
+    # Server blinks twice fast, three separate times
+    if is_server:
+        for x in range(3):
+            for y in range(2):
+                led.value(1)
+                utime.sleep_ms(50)
+                led.value(0)
+                utime.sleep_ms(50)
+            time.sleep(1)
+    # Client blinks three times slow
+    else:
+        for y in range(3):
+            led.value(1)
+            utime.sleep_ms(500)
+            led.value(0)
+            utime.sleep_ms(500)
+
     w5x00_init()
     
     if is_server:
-        ###TCP SERVER###
         server_loop()
     else:
-        ###TCP CLIENT###
         client_loop()
 
 if __name__ == "__main__":
