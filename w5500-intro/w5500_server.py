@@ -10,7 +10,7 @@ def server_setup():
     # Create a TCP/IP socket
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
-    server_address = ('', 10000) #desktop
+    server_address = ('', 5000) #desktop
     print('starting up on {} port {}'.format(*server_address))
     sock.bind(server_address)
 
